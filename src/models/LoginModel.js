@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const validator = require('validator');
+const bcryptjs = require('bcryptjs');
 
 const LoginSchema = new mongoose.Schema({
     email: { type: String, require: true },
@@ -14,17 +15,41 @@ class Login {
     this.errors=[];
     this.user=null;
   }
-
- async register(){
-  this.valida();
-  if(this.errors.length > 0) return; 
-  
-  try 
-  {
-    this.user = await LoginModel.create(this.body);
-  } catch (e) {
-    console.log(e);    
+  async login(){
+    this.valida();
+    if(this.errors.length > 0) return;
+    this.user = await LoginModel.findOne({ email: this.body.email });
+    if(!this.user){
+      this.errors.push('Usuário não existe.');
+      return;
+    }   
+    if(!bcryptjs.compareSync(this.body.password,this.user.password)){
+      this.errors.push('senha inválida');
+      this.user = null;
+      return;
+    }
   }
+  async register(){
+    this.valida();
+    if(this.errors.length > 0) return; 
+    
+    await this.userExists();
+    //testa se o usuário já existe na base de dados.
+    if(this.errors.length > 0) return;
+    
+    const salt = bcryptjs.genSaltSync();
+    this.body.password = bcryptjs.hashSync(this.body.password, salt);
+    
+    this.user = await LoginModel.create(this.body);
+    
+  }
+
+async userExists(){
+  //findOne vai retornar o usuário, no caso e-mail, se existe, se não retorna null(base de dados)
+  //ou seja, testa se o e-mail já existe na base de dados.
+
+  this.user = await LoginModel.findOne({ email: this.body.email });
+  if(this.user) this.errors.push('Usuário já existe');
 }
  
  valida(){
