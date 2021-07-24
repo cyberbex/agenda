@@ -45,6 +45,12 @@ app.use(middlewareGlobal);
 app.use(checkCsrfError);
 app.use(csrfMiddleware);
 app.use(routes);
+app.use(
+  helmet({
+      contentSecurityPolicy: false
+  })
+)
+
 
 app.on('pronto', () => {
   app.listen(3000, () => {
